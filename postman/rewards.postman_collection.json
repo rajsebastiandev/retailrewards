@@ -1,0 +1,935 @@
+{
+  "info": {
+    "name": "Rewards",
+    "description": "Requests for the Rewards running locally (`mvnw spring-boot:run`). Each request has test scripts that check the expected values for the seed data set; run the whole collection with the Collection Runner.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "createdTransactionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "evaTotalBefore",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "evaSeptemberBefore",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Rewards",
+      "item": [
+        {
+          "name": "All customers - full period",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rewards",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rewards"
+              ]
+            },
+            "description": "Monthly and total points for every customer. With no dates, the period runs from the earliest to the latest transaction."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Period covers the whole data set', () => {",
+                  "    pm.expect(body.from).to.eql('2026-07-03');",
+                  "    pm.expect(body.to).to.eql('2026-09-30');",
+                  "});",
+                  "",
+                  "pm.test('Total points per customer', () => {",
+                  "    const totals = Object.fromEntries(body.customers.map(c => [c.customerName, c.totalPoints]));",
+                  "    pm.expect(totals).to.eql({",
+                  "        'Alice Johnson': 525,",
+                  "        'Bob Smith': 652,",
+                  "        'Carol Davis': 865,",
+                  "        'David Lee': 220,",
+                  "        'Eva Martinez': 0",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('Every customer lists Jul, Aug and Sep', () => {",
+                  "    body.customers.forEach(c => {",
+                  "        pm.expect(c.monthlyRewards.map(m => m.month)).to.eql(['2026-07', '2026-08', '2026-09']);",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "All customers - date range",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rewards?from=2026-08-01&to=2026-09-30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rewards"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-08-01",
+                  "description": "Inclusive start date (yyyy-MM-dd)"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-09-30",
+                  "description": "Inclusive end date (yyyy-MM-dd)"
+                }
+              ]
+            },
+            "description": "Only transactions between `from` and `to` (both inclusive) are counted."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Only Aug and Sep are listed', () => {",
+                  "    body.customers.forEach(c => {",
+                  "        pm.expect(c.monthlyRewards.map(m => m.month)).to.eql(['2026-08', '2026-09']);",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('Alice earns 410 points in Aug-Sep', () => {",
+                  "    const alice = body.customers.find(c => c.customerId === 1);",
+                  "    pm.expect(alice.totalPoints).to.eql(410);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Single customer - Alice (1)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rewards/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rewards",
+                "1"
+              ]
+            },
+            "description": "Includes the specification's example: a $120 purchase earns 90 points."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Customer is Alice Johnson', () => pm.expect(body.customerName).to.eql('Alice Johnson'));",
+                  "pm.test('Monthly points are 115 / 250 / 160', () => {",
+                  "    pm.expect(body.monthlyRewards.map(m => m.points)).to.eql([115, 250, 160]);",
+                  "});",
+                  "pm.test('Total is 525', () => pm.expect(body.totalPoints).to.eql(525));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Single customer - Bob (2), $50 / $100 boundaries",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rewards/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rewards",
+                "2"
+              ]
+            },
+            "description": "Jul: $50 -> 0, $51 -> 1. Aug: $99.99 -> 49. Sep: $101 -> 52, $350.75 -> 550."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Monthly points are 1 / 49 / 602', () => {",
+                  "    pm.expect(body.monthlyRewards.map(m => m.points)).to.eql([1, 49, 602]);",
+                  "});",
+                  "pm.test('Total is 652', () => pm.expect(body.totalPoints).to.eql(652));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Single customer - David (4), months without purchases",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rewards/4",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rewards",
+                "4"
+              ]
+            },
+            "description": "David only shops in August; July and September are still listed with 0 points."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Monthly points are 0 / 220 / 0', () => {",
+                  "    pm.expect(body.monthlyRewards.map(m => m.points)).to.eql([0, 220, 0]);",
+                  "});",
+                  "pm.test('Total is 220', () => pm.expect(body.totalPoints).to.eql(220));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Single customer - date range",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rewards/3?from=2026-08-01&to=2026-09-30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rewards",
+                "3"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-08-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-09-30"
+                }
+              ]
+            },
+            "description": "Carol's $500 purchase on 2026-07-31 falls outside the range and is excluded."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Monthly points are 0 / 15', () => {",
+                  "    pm.expect(body.monthlyRewards.map(m => m.month)).to.eql(['2026-08', '2026-09']);",
+                  "    pm.expect(body.monthlyRewards.map(m => m.points)).to.eql([0, 15]);",
+                  "});",
+                  "pm.test('Total is 15', () => pm.expect(body.totalPoints).to.eql(15));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Errors",
+      "item": [
+        {
+          "name": "Unknown customer - 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rewards/999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rewards",
+                "999"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Problem detail explains the error', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.title).to.eql('Customer not found');",
+                  "    pm.expect(body.detail).to.eql('Customer 999 not found');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "'from' after 'to' - 400",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rewards?from=2026-09-01&to=2026-07-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rewards"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-07-01"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Title is Invalid date range', () => pm.expect(pm.response.json().title).to.eql('Invalid date range'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Malformed date - 400",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rewards?from=07/01/2026",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rewards"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "07/01/2026"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Title is Invalid request parameter', () => pm.expect(pm.response.json().title).to.eql('Invalid request parameter'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Non-numeric customer id - 400",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rewards/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rewards",
+                "abc"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "description": "Add purchases and see them reflected in the rewards. Requests in the 'Add a purchase and check rewards' flow depend on each other, so run them in order. Data lives in memory: restart the app to get back to the seed data (the fixed totals checked in the Rewards folder assume seed data only).",
+      "item": [
+        {
+          "name": "List transactions - all",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transactions"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Every transaction shows the points it earned', () => {",
+                  "    pm.response.json().forEach(t => pm.expect(t).to.have.property('points'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List transactions - one customer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transactions?customerId=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "customerId",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Only Alice's transactions, oldest first', () => {",
+                  "    body.forEach(t => pm.expect(t.customerId).to.eql(1));",
+                  "    pm.expect(body[0].id).to.eql('T1001');",
+                  "    pm.expect(body[0].points).to.eql(90);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add a purchase and check rewards",
+          "description": "1) read Eva's current rewards, 2) add a $120 purchase, 3) fetch it, 4) check Eva's rewards went up by 90. Safe to run repeatedly.",
+          "item": [
+            {
+              "name": "1. Eva rewards - before",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/rewards/5",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rewards",
+                    "5"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const body = pm.response.json();",
+                      "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                      "const sep = body.monthlyRewards.find(m => m.month === '2026-09');",
+                      "pm.collectionVariables.set('evaTotalBefore', body.totalPoints);",
+                      "pm.collectionVariables.set('evaSeptemberBefore', sep ? sep.points : 0);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "2. Add $120 purchase for Eva",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/transactions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "transactions"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"customerId\": 5,\n  \"amount\": 120.0,\n  \"date\": \"2026-09-20\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Creates a purchase. The id is generated, continuing the sample data's sequence (T1020, T1021, ...) and the response includes the points earned."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const body = pm.response.json();",
+                      "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
+                      "pm.test('Location header points to the new transaction', () => {",
+                      "    pm.expect(pm.response.headers.get('Location')).to.include('/api/transactions/' + body.id);",
+                      "});",
+                      "pm.test('$120 earns 90 points', () => pm.expect(body.points).to.eql(90));",
+                      "pm.test('Customer name is filled in', () => pm.expect(body.customerName).to.eql('Eva Martinez'));",
+                      "pm.collectionVariables.set('createdTransactionId', body.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "3. Get created transaction",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/transactions/{{createdTransactionId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "transactions",
+                    "{{createdTransactionId}}"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Returns the transaction just created', () => {",
+                      "    pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('createdTransactionId'));",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "4. Eva rewards - after",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/rewards/5",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "rewards",
+                    "5"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const body = pm.response.json();",
+                      "const before = Number(pm.collectionVariables.get('evaTotalBefore'));",
+                      "const sepBefore = Number(pm.collectionVariables.get('evaSeptemberBefore'));",
+                      "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                      "pm.test('September went up by 90', () => {",
+                      "    pm.expect(body.monthlyRewards.find(m => m.month === '2026-09').points).to.eql(sepBefore + 90);",
+                      "});",
+                      "pm.test('Total went up by 90', () => pm.expect(body.totalPoints).to.eql(before + 90));"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Add purchase - validation errors (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": 1,\n  \"amount\": -10,\n  \"date\": \"2099-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Each invalid field is reported', () => {",
+                  "    pm.expect(body.title).to.eql('Validation failed');",
+                  "    pm.expect(body.errors.amount).to.eql('must be at least 0.01');",
+                  "    pm.expect(body.errors.date).to.eql('must not be in the future');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add purchase - unknown customer (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": 999,\n  \"amount\": 50.0,\n  \"date\": \"2026-09-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Detail names the customer', () => pm.expect(pm.response.json().detail).to.eql('Customer 999 not found'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add purchase - malformed date (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": 1,\n  \"amount\": 10,\n  \"date\": \"09/01/2026\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Title is Malformed request body', () => pm.expect(pm.response.json().title).to.eql('Malformed request body'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get transaction - unknown id (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transactions/NOPE",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transactions",
+                "NOPE"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Title is Transaction not found', () => pm.expect(pm.response.json().title).to.eql('Transaction not found'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

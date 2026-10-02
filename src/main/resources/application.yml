@@ -1,0 +1,6 @@
+server:
+  port: 8080
+
+rewards:
+  # Classpath (or file:) location of the seed data set
+  data-file: classpath:data/transactions.json

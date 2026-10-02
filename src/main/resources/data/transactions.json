@@ -1,0 +1,34 @@
+{
+  "customers": [
+    { "id": 1, "name": "Alice Johnson" },
+    { "id": 2, "name": "Bob Smith" },
+    { "id": 3, "name": "Carol Davis" },
+    { "id": 4, "name": "David Lee" },
+    { "id": 5, "name": "Eva Martinez" }
+  ],
+  "transactions": [
+    { "id": "T1001", "customerId": 1, "amount": 120.00, "date": "2026-07-03" },
+    { "id": "T1002", "customerId": 1, "amount": 75.50,  "date": "2026-07-15" },
+    { "id": "T1003", "customerId": 1, "amount": 200.00, "date": "2026-08-02" },
+    { "id": "T1004", "customerId": 1, "amount": 45.00,  "date": "2026-08-20" },
+    { "id": "T1005", "customerId": 1, "amount": 100.00, "date": "2026-09-10" },
+    { "id": "T1006", "customerId": 1, "amount": 130.25, "date": "2026-09-28" },
+
+    { "id": "T1007", "customerId": 2, "amount": 50.00,  "date": "2026-07-05" },
+    { "id": "T1008", "customerId": 2, "amount": 51.00,  "date": "2026-07-22" },
+    { "id": "T1009", "customerId": 2, "amount": 99.99,  "date": "2026-08-11" },
+    { "id": "T1010", "customerId": 2, "amount": 101.00, "date": "2026-09-01" },
+    { "id": "T1011", "customerId": 2, "amount": 350.75, "date": "2026-09-30" },
+
+    { "id": "T1012", "customerId": 3, "amount": 500.00, "date": "2026-07-31" },
+    { "id": "T1013", "customerId": 3, "amount": 10.00,  "date": "2026-08-01" },
+    { "id": "T1014", "customerId": 3, "amount": 65.00,  "date": "2026-09-15" },
+
+    { "id": "T1015", "customerId": 4, "amount": 150.00, "date": "2026-08-14" },
+    { "id": "T1016", "customerId": 4, "amount": 110.00, "date": "2026-08-25" },
+
+    { "id": "T1017", "customerId": 5, "amount": 20.00,  "date": "2026-07-09" },
+    { "id": "T1018", "customerId": 5, "amount": 49.99,  "date": "2026-08-18" },
+    { "id": "T1019", "customerId": 5, "amount": 35.00,  "date": "2026-09-05" }
+  ]
+}
